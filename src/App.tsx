@@ -7,15 +7,35 @@ const initialInput = { text: '', page: undefined };
 
 function App() {
   const [searchInput, setSearchInput] = useState<SearchInput>(initialInput);
-  const [searchCache, setSearchCache] = useState<SearchInput>(searchInput);
+  const [searchCache, setSearchCache] = useState<SearchInput>(initialInput);
   const [searchResult, setSearchResult] = useState<resData[]>([]);
+  const [nextRequest, setNextRequest] = useState<SearchInput>(initialInput);
+  const [inView, setInView] = useState<boolean>(false);
   const { data, resHeader, search } = useSearchGitHub();
 
   useEffect(() => {
     if (data) {
-      setSearchResult(data);
+      setSearchResult([...searchResult, ...data]);
+      setNextRequest({
+        text: searchCache.text,
+        page: resHeader?.nextPageNumber,
+      });
     }
   }, [data]);
+
+  useEffect(() => {
+    const fetchNext = async () => {
+      console.log(nextRequest);
+      await search(nextRequest);
+    };
+    if (inView) {
+      fetchNext();
+    }
+  }, [inView]);
+
+  const handleInViewChange = (inView: boolean) => {
+    setInView(inView);
+  };
 
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
@@ -28,6 +48,7 @@ function App() {
   const handleCancel = () => {
     setSearchInput(initialInput);
     setSearchCache(initialInput);
+    setNextRequest(initialInput);
     setSearchResult([]);
   };
 
@@ -61,15 +82,7 @@ function App() {
           </form>
         </div>
         <div id="search-result" className="w-full">
-          {searchResult.length === 0 ? null : (
-            <SearchResult
-              data={data}
-              nextRequest={{
-                text: searchCache.text,
-                page: resHeader?.nextPageNumber,
-              }}
-            />
-          )}
+          {searchResult.length === 0 ? null : <SearchResult data={searchResult} onInViewChange={handleInViewChange} />}
         </div>
       </div>
     </div>

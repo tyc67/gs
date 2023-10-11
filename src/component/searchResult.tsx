@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect } from 'react';
 import { StarFilled, TagFilled } from '@ant-design/icons';
 import { useElementInview, type Option } from '../hooks/useElementInView';
-import { useSearchGitHub, type resData, type SearchInput } from '../hooks/useSearchGitHub';
+import { type resData } from '../hooks/useSearchGitHub';
 
 const options: Option = {
   root: null,
@@ -11,43 +11,17 @@ const options: Option = {
 
 interface Props {
   data: resData[] | null;
-  nextRequest: { text: string; page: string | undefined };
+  onInViewChange: (inView: boolean) => void;
 }
 
-export const SearchResult = (props: Props) => {
-  // console.log('props:', props);
-  const [viewData, setViewData] = useState<typeof props.data>(props.data);
-  const [request, setRequest] = useState<SearchInput>(props.nextRequest);
+export const SearchResult = ({ data: viewData, onInViewChange }: Props) => {
   const { containerRef, inView } = useElementInview(options);
-  const { data: nextData, error, resHeader, search } = useSearchGitHub();
-
-  console.log({ viewData }, { nextData }, { resHeader }, { request }, { error });
 
   useEffect(() => {
-    const fetchNext = async () => {
-      console.log({ inView });
-      console.log('%cfetch next', 'color: red; font-weight: bold;');
-      await search(request);
-    };
-    if (inView && props.nextRequest.page !== undefined) {
-      fetchNext();
-    }
-  }, [inView]);
+    onInViewChange(inView);
+  }, [inView, onInViewChange]);
 
-  useEffect(() => {
-    if (nextData !== null && viewData !== null) {
-      setRequest({ text: request.text, page: resHeader?.nextPageNumber });
-      setViewData([...viewData, ...nextData]);
-    }
-  }, [nextData]);
-
-  useEffect(() => {
-    if (props.data !== viewData) {
-      setViewData(props.data);
-      setRequest(props.nextRequest);
-    }
-  }, [props.data]);
-
+  /*
   const getErrorInformation = useMemo(() => {
     const errorHandlers = {
       '403': () => {
@@ -75,7 +49,7 @@ export const SearchResult = (props: Props) => {
       }
     }
   }, [error]);
-
+*/
   return (
     <>
       <div className="w-full h-screen-10rem bg-white rounded-lg overflow-auto p-2 scroll-p-2">
@@ -85,21 +59,21 @@ export const SearchResult = (props: Props) => {
               <a href={item.svn_url}>
                 <h2 className="text-lg font-semibold">{item.name}</h2>
               </a>
-              <p className="text-sm font-light">{item.description}</p>
-              <span className="flex text-[11px] font-medium gap-2 ">
+              <p className="text-[12px] font-light">{item.description}</p>
+              <span className="flex text-[10px] text-slate-500 font-medium gap-2 ">
                 <span className="flex items-center">
-                  <StarFilled />
+                  <StarFilled className="mr-1" />
                   <span>{item.stargazers_count}</span>
                 </span>
                 <span className="flex items-center">
-                  <TagFilled />
+                  <TagFilled className="mr-1" />
                   <span>{item.language}</span>
                 </span>
                 <span className="flex items-center">
                   <span>{item.license?.name}</span>
                 </span>
                 <span className="flex items-center">
-                  <img src={item.owner.avatar_url} className="w-4 h-4 rounded-full"></img>
+                  <img src={item.owner.avatar_url} className="w-4 h-4 mr-1 rounded-full"></img>
                   <span>{item.owner.login}</span>
                 </span>
               </span>
