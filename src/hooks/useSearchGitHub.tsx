@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { vndTransform, type Vnd } from '../utils/vnd';
 
 export interface resData {
@@ -29,18 +29,23 @@ export interface SearchInput {
   page: string | undefined;
 }
 
-type error = '403' | '304' | '422' | '503';
+export type errorCode = '403' | '304' | '422' | '503';
 
 export const useSearchGitHub = () => {
   const [data, setData] = useState<resData[] | null>(null);
-  const [error, setError] = useState<error | null>(null);
+  const [error, setError] = useState<errorCode | null>(null);
   const [isLoading, setIsloading] = useState<boolean>(false);
   const [resHeader, setResHeader] = useState<Partial<Vnd> | null>(null);
 
+  const prevSearch = useRef<SearchInput | null>(null);
   const search = useCallback(async (state: SearchInput) => {
     try {
-      setIsloading(true);
       console.log(state);
+      if (prevSearch.current && prevSearch.current.text === state.text && prevSearch.current.page === state.page) {
+        return;
+      }
+      setIsloading(true);
+      prevSearch.current = state;
       const url = () => {
         if (state.page === undefined) {
           return `https://api.github.com/search/repositories?q=${state.text}`;

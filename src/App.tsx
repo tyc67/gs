@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { SearchOutlined, CloseCircleFilled } from '@ant-design/icons';
+import { SearchOutlined, CloseCircleFilled, ExclamationCircleOutlined } from '@ant-design/icons';
 import { useSearchGitHub, type SearchInput, type resData } from './hooks/useSearchGitHub';
+import { useErrorInfo } from './hooks/useErrorInfo';
 import { SearchResult } from './component/searchResult';
 
 const initialInput = { text: '', page: undefined };
@@ -10,8 +11,10 @@ function App() {
   const [searchCache, setSearchCache] = useState<SearchInput>(initialInput);
   const [searchResult, setSearchResult] = useState<resData[]>([]);
   const [nextRequest, setNextRequest] = useState<SearchInput>(initialInput);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [inView, setInView] = useState<boolean>(false);
-  const { data, resHeader, search } = useSearchGitHub();
+  const { data, resHeader, error, search } = useSearchGitHub();
+  const getErrorInfo = useErrorInfo();
 
   useEffect(() => {
     if (data) {
@@ -25,13 +28,21 @@ function App() {
 
   useEffect(() => {
     const fetchNext = async () => {
-      console.log(nextRequest);
       await search(nextRequest);
     };
     if (inView) {
       fetchNext();
     }
   }, [inView]);
+
+  useEffect(() => {
+    if (error && resHeader?.rateLimitReset) {
+      const text = getErrorInfo(resHeader?.rateLimitReset, error);
+      setErrorMessage(text);
+    } else if (!error) {
+      setErrorMessage(null);
+    }
+  }, [error]);
 
   const handleInViewChange = (inView: boolean) => {
     setInView(inView);
@@ -41,6 +52,7 @@ function App() {
     e.preventDefault();
     if (searchInput.text.trim() !== '' && searchInput.text !== searchCache.text) {
       // console.log(`%csearch: ${searchInput.text}`, 'color: red; font-weight: bold;');
+      setSearchResult([]);
       await search(searchInput);
       setSearchCache(searchInput);
     }
@@ -50,6 +62,7 @@ function App() {
     setSearchCache(initialInput);
     setNextRequest(initialInput);
     setSearchResult([]);
+    setErrorMessage(null);
   };
 
   return (
@@ -80,6 +93,14 @@ function App() {
             ></input>
             {searchInput.text === '' ? null : <CloseCircleFilled onClick={() => handleCancel()} />}
           </form>
+        </div>
+        <div id="err" className="w-full flex justify-center">
+          {errorMessage ? (
+            <div className="text-red-600 flex items-center">
+              <ExclamationCircleOutlined className="mr-1 text-[14px]" />
+              <p className="text-xs">{errorMessage}</p>
+            </div>
+          ) : null}
         </div>
         <div id="search-result" className="w-full">
           {searchResult.length === 0 ? null : <SearchResult data={searchResult} onInViewChange={handleInViewChange} />}

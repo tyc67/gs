@@ -6,8 +6,8 @@ export default {
   ],
   theme: {
     extend: {
-      height: {
-        'screen-10rem': 'calc(100vh - 10rem)',
+      maxHeight: {
+        'screen-10': 'calc(100vh - 10rem)',
       },
       spacing: {
         '1px': '1px',
