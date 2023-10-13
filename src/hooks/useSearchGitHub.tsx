@@ -71,6 +71,7 @@ export const useSearchGitHub = () => {
         setData(responseData);
         setError(null);
       } else {
+        prevSearch.current = null;
         throw Error(`${res.status}`);
       }
     } catch (error: any) {

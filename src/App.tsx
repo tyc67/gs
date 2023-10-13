@@ -12,6 +12,7 @@ function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [resetTimestamp, setResetTimestamp] = useState<number | null>(null);
   const [timeUntilReset, setTimeUntilReset] = useState<number | null>(null);
+  const [isReachRateLimit, setIsReachRateLimit] = useState<boolean>(false);
   const [inView, setInView] = useState<boolean>(false);
   const { data, resHeader, isLoading, error, search } = useSearchGitHub();
 
@@ -43,7 +44,9 @@ function App() {
 
   useEffect(() => {
     const fetchNext = async () => {
-      await search(nextRequest);
+      if (!isReachRateLimit) {
+        await search(nextRequest);
+      }
     };
     if (inView) {
       fetchNext();
@@ -52,9 +55,11 @@ function App() {
 
   useEffect(() => {
     if (error && timeUntilReset) {
-      // what if error !==null but timeUntilReset is null?
       const errorMessages = {
-        '403': `API rate limit exceeded, please retry after ${Math.floor(timeUntilReset / 1000)} seconds`,
+        '403': () => {
+          setIsReachRateLimit(true);
+          return `API rate limit exceeded, please retry after ${Math.floor(timeUntilReset / 1000)} seconds`;
+        },
         '304': 'Not modified',
         '422': 'Validation failed, or the endpoint has been spammed.',
         '503': 'Service unavailable',
@@ -62,6 +67,7 @@ function App() {
       setErrorMessage(errorMessages[error] || 'Uknown error');
     } else {
       setErrorMessage(null);
+      setIsReachRateLimit(false);
     }
   }, [error, timeUntilReset]);
 
@@ -71,7 +77,7 @@ function App() {
 
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    if (searchInput.text.trim() !== '' && searchInput.text !== searchCache.text) {
+    if (searchInput.text.trim() !== '' && searchInput.text !== searchCache.text && !isReachRateLimit) {
       // console.log(`%csearch: ${searchInput.text}`, 'color: red; font-weight: bold;');
       setSearchResult([]);
       await search(searchInput);
@@ -116,7 +122,6 @@ function App() {
           </form>
         </div>
         <div id="err" className="w-full flex justify-center">
-          {/* {<p>{timeUntilReset}</p>} */}
           {errorMessage ? (
             <div className="text-red-600 flex items-center">
               <ExclamationCircleOutlined className="mr-1 text-[14px]" />
