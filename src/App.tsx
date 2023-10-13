@@ -1,20 +1,19 @@
 import { useEffect, useState } from 'react';
 import { SearchOutlined, CloseCircleFilled, ExclamationCircleOutlined } from '@ant-design/icons';
 import { useSearchGitHub, type SearchInput, type resData } from './hooks/useSearchGitHub';
-import { useErrorInfo } from './hooks/useErrorInfo';
 import { SearchResult } from './component/searchResult';
 
-const initialInput = { text: '', page: undefined };
-
 function App() {
+  const initialInput = { text: '', page: undefined };
   const [searchInput, setSearchInput] = useState<SearchInput>(initialInput);
   const [searchCache, setSearchCache] = useState<SearchInput>(initialInput);
   const [searchResult, setSearchResult] = useState<resData[]>([]);
   const [nextRequest, setNextRequest] = useState<SearchInput>(initialInput);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [resetTimestamp, setResetTimestamp] = useState<number | null>(null);
+  const [timeUntilReset, setTimeUntilReset] = useState<number | null>(null);
   const [inView, setInView] = useState<boolean>(false);
-  const { data, resHeader, error, search } = useSearchGitHub();
-  const getErrorInfo = useErrorInfo();
+  const { data, resHeader, isLoading, error, search } = useSearchGitHub();
 
   useEffect(() => {
     if (data) {
@@ -23,8 +22,24 @@ function App() {
         text: searchCache.text,
         page: resHeader?.nextPageNumber,
       });
+      setResetTimestamp(Number(resHeader?.rateLimitReset) * 1000);
     }
   }, [data]);
+
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (resetTimestamp) {
+        const remainingTime = resetTimestamp - Date.now();
+        if (remainingTime <= 0) {
+          setTimeUntilReset(null);
+          clearInterval(intervalId);
+        } else {
+          setTimeUntilReset(remainingTime);
+        }
+      }
+      return () => clearInterval(intervalId);
+    }, 1000);
+  }, [resetTimestamp]);
 
   useEffect(() => {
     const fetchNext = async () => {
@@ -36,13 +51,19 @@ function App() {
   }, [inView]);
 
   useEffect(() => {
-    if (error && resHeader?.rateLimitReset) {
-      const text = getErrorInfo(resHeader?.rateLimitReset, error);
-      setErrorMessage(text);
-    } else if (!error) {
+    if (error && timeUntilReset) {
+      // what if error !==null but timeUntilReset is null?
+      const errorMessages = {
+        '403': `API rate limit exceeded, please retry after ${Math.floor(timeUntilReset / 1000)} seconds`,
+        '304': 'Not modified',
+        '422': 'Validation failed, or the endpoint has been spammed.',
+        '503': 'Service unavailable',
+      };
+      setErrorMessage(errorMessages[error] || 'Uknown error');
+    } else {
       setErrorMessage(null);
     }
-  }, [error]);
+  }, [error, timeUntilReset]);
 
   const handleInViewChange = (inView: boolean) => {
     setInView(inView);
@@ -95,6 +116,7 @@ function App() {
           </form>
         </div>
         <div id="err" className="w-full flex justify-center">
+          {/* {<p>{timeUntilReset}</p>} */}
           {errorMessage ? (
             <div className="text-red-600 flex items-center">
               <ExclamationCircleOutlined className="mr-1 text-[14px]" />
@@ -103,7 +125,9 @@ function App() {
           ) : null}
         </div>
         <div id="search-result" className="w-full">
-          {searchResult.length === 0 ? null : <SearchResult data={searchResult} onInViewChange={handleInViewChange} />}
+          {searchResult.length === 0 ? null : (
+            <SearchResult data={searchResult} onInViewChange={handleInViewChange} isLoading={isLoading} />
+          )}
         </div>
       </div>
     </div>

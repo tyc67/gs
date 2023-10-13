@@ -36,12 +36,13 @@ export const useSearchGitHub = () => {
   const [error, setError] = useState<errorCode | null>(null);
   const [isLoading, setIsloading] = useState<boolean>(false);
   const [resHeader, setResHeader] = useState<Partial<Vnd> | null>(null);
-
   const prevSearch = useRef<SearchInput | null>(null);
+
   const search = useCallback(async (state: SearchInput) => {
     try {
       console.log(state);
       if (prevSearch.current && prevSearch.current.text === state.text && prevSearch.current.page === state.page) {
+        console.log(`%csame-page-fetch`, 'color: red; font-weight: bold;');
         return;
       }
       setIsloading(true);
@@ -61,8 +62,8 @@ export const useSearchGitHub = () => {
           'X-GitHub-Api-Version': '2022-11-28',
         },
       });
-      console.log(...res.headers);
       if (res.ok) {
+        console.log('remain: ', res.headers.get('x-ratelimit-remaining'));
         const responseHeader = vndTransform(res);
         const responseBody: resBody = await res.json();
         const responseData = responseBody.items;

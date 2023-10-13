@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { StarFilled, TagFilled } from '@ant-design/icons';
 import { useElementInview, type Option } from '../hooks/useElementInView';
 import { type resData } from '../hooks/useSearchGitHub';
+import Spinner from './Spinner';
 
 const options: Option = {
   root: null,
@@ -11,10 +12,11 @@ const options: Option = {
 
 interface Props {
   data: resData[] | null;
+  isLoading: boolean;
   onInViewChange: (inView: boolean) => void;
 }
 
-export const SearchResult = ({ data: viewData, onInViewChange }: Props) => {
+export const SearchResult = ({ data: viewData, isLoading, onInViewChange }: Props) => {
   const { containerRef, inView } = useElementInview(options);
 
   useEffect(() => {
@@ -52,6 +54,11 @@ export const SearchResult = ({ data: viewData, onInViewChange }: Props) => {
           </div>
         ))}
         <div id="end-of-page" ref={containerRef} className="w-1px h-1px invisible" />
+        {isLoading ? (
+          <div className="w-full flex justify-center py-1">
+            <Spinner size="md" />
+          </div>
+        ) : null}
       </div>
     </>
   );
