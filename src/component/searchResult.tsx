@@ -21,7 +21,7 @@ export const SearchResult = ({ data: viewData, isLoading, onInViewChange }: Prop
 
   useEffect(() => {
     onInViewChange(inView);
-  }, [inView, onInViewChange]);
+  }, [inView]);
 
   return (
     <>
@@ -53,12 +53,12 @@ export const SearchResult = ({ data: viewData, isLoading, onInViewChange }: Prop
             </div>
           </div>
         ))}
-        <div id="end-of-page" ref={containerRef} className="w-1px h-1px invisible" />
         {isLoading ? (
           <div className="w-full flex justify-center py-1">
             <Spinner size="md" />
           </div>
         ) : null}
+        <div id="end-of-page" ref={containerRef} className="w-1px h-1px invisible" />
       </div>
     </>
   );

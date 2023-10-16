@@ -9,71 +9,63 @@ function App() {
   const [searchInput, setSearchInput] = useState<SearchInput>(initialInput);
   const [searchCache, setSearchCache] = useState<SearchInput>(initialInput);
   const [searchResult, setSearchResult] = useState<resData[]>([]);
-  const [nextRequest, setNextRequest] = useState<SearchInput>(initialInput);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [resetTimestamp, setResetTimestamp] = useState<number | null>(null);
   const [timeUntilReset, setTimeUntilReset] = useState<number | null>(null);
-  const [isReachRateLimit, setIsReachRateLimit] = useState<boolean>(false);
-  const [inView, setInView] = useState<boolean>(false);
   const { data, resHeader, isLoading, error, search } = useSearchGitHub();
+
+  const resetTimestamp = Number(resHeader?.rateLimitReset ?? 0) * 1000;
 
   useEffect(() => {
     if (data) {
       setSearchResult([...searchResult, ...data]);
-      setNextRequest({
-        text: searchCache.text,
-        page: resHeader?.nextPageNumber,
-      });
-      setResetTimestamp(Number(resHeader?.rateLimitReset) * 1000);
     }
   }, [data]);
 
   useEffect(() => {
+    if (error !== '403') return;
     const intervalId = setInterval(() => {
-      if (resetTimestamp) {
-        const remainingTime = resetTimestamp - Date.now();
-        if (remainingTime <= 0) {
-          setTimeUntilReset(null);
-          clearInterval(intervalId);
-        } else {
-          setTimeUntilReset(remainingTime);
-        }
+      const remainingTime = resetTimestamp - Date.now();
+      if (remainingTime <= 0) {
+        setTimeUntilReset(null);
+        clearInterval(intervalId);
+      } else {
+        setTimeUntilReset(remainingTime);
       }
-      return () => clearInterval(intervalId);
     }, 1000);
-  }, [resetTimestamp]);
+    return () => clearInterval(intervalId);
+  }, [error, resetTimestamp]);
 
-  useEffect(() => {
-    const fetchNext = async () => {
-      if (!isReachRateLimit) {
-        await search(nextRequest);
-      }
-    };
-    if (inView) {
-      fetchNext();
+  // const {errorMessage, isReachRateLimit} = useMemo(() => {
+  let isReachRateLimit = false;
+  let errorMessage = '';
+  if (error && timeUntilReset) {
+    switch (error) {
+      case '403':
+        isReachRateLimit = true;
+        errorMessage = `API rate limit exceeded, please retry after ${Math.floor(timeUntilReset / 1000)} seconds`;
+        break;
+      case '304':
+        errorMessage = 'Not modified';
+        break;
+      case '422':
+        errorMessage = 'Validation failed, or the endpoint has been spammed.';
+        break;
+      case '503':
+        errorMessage = 'Service unavailable';
+        break;
+      default:
+        errorMessage = 'Uknown error';
     }
-  }, [inView]);
+  }
+  //   return { isReachRateLimit, errorMessage }
+  // }, [error, timeUntilReset]);
 
-  useEffect(() => {
-    if (error && timeUntilReset) {
-      const errorMessages = {
-        '403': () => {
-          setIsReachRateLimit(true);
-          return `API rate limit exceeded, please retry after ${Math.floor(timeUntilReset / 1000)} seconds`;
-        },
-        '304': 'Not modified',
-        '422': 'Validation failed, or the endpoint has been spammed.',
-        '503': 'Service unavailable',
-      };
-      setErrorMessage(errorMessages[error] || 'Uknown error');
-    } else {
-      setErrorMessage(null);
-      setIsReachRateLimit(false);
+  const handleInViewChange = async (inView: boolean) => {
+    if (inView && !isReachRateLimit && !isLoading) {
+      await search({
+        text: searchCache.text,
+        page: resHeader?.nextPageNumber,
+      });
     }
-  }, [error, timeUntilReset]);
-
-  const handleInViewChange = (inView: boolean) => {
-    setInView(inView);
   };
 
   const handleOnChage = (e: any) => {
@@ -83,7 +75,6 @@ function App() {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (searchInput.text.trim() !== '' && searchInput.text !== searchCache.text && !isReachRateLimit) {
-      // console.log(`%csearch: ${searchInput.text}`, 'color: red; font-weight: bold;');
       setSearchResult([]);
       await search(searchInput);
       setSearchCache(searchInput);
@@ -92,10 +83,12 @@ function App() {
   const handleCancel = () => {
     setSearchInput(initialInput);
     setSearchCache(initialInput);
-    setNextRequest(initialInput);
     setSearchResult([]);
-    setErrorMessage(null);
   };
+
+  if (searchInput.text === '' && searchResult.length > 0) {
+    handleCancel();
+  }
 
   return (
     <div className="flex bg-gray-100 justify-center">

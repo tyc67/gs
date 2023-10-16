@@ -31,6 +31,8 @@ export interface SearchInput {
 
 export type errorCode = '403' | '304' | '422' | '503';
 
+// const cache = new Map<string, {header:Partial<Vnd>, items:resData[]}>();
+
 export const useSearchGitHub = () => {
   const [data, setData] = useState<resData[] | null>(null);
   const [error, setError] = useState<errorCode | null>(null);
@@ -45,6 +47,11 @@ export const useSearchGitHub = () => {
         console.log(`%csame-page-fetch`, 'color: red; font-weight: bold;');
         return;
       }
+      // if(cache.has(state.text)) {
+      //   setData(cache.get(state.text)!.items);
+      //   setResHeader(cache.get(state.text)!.header);
+      //   return 
+      // }
       setIsloading(true);
       prevSearch.current = state;
       const url = () => {
@@ -67,6 +74,7 @@ export const useSearchGitHub = () => {
         const responseHeader = vndTransform(res);
         const responseBody: resBody = await res.json();
         const responseData = responseBody.items;
+        // cache.set(state.text, {header: responseHeader, items: responseData});
         setResHeader(responseHeader);
         setData(responseData);
         setError(null);
