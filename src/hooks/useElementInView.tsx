@@ -10,9 +10,6 @@ export const useElementInview = (options: Option) => {
   const [inView, setInView] = useState<boolean>(false);
   const containerRef = useRef(null);
 
-  // ⭐️⭐️⭐️⭐️⭐️ Handling async events:
-  // - debounce
-  // - throttling
   useEffect(() => {
     const node = containerRef.current;
     if (node) {

@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef } from 'react';
-import { vndTransform, type Vnd } from '../utils/vnd';
+import { useState, useCallback } from 'react';
+import { useFetchApi2 } from './useFetchApi';
 
 export interface resData {
   id: string;
@@ -18,7 +18,12 @@ export interface resData {
   owner: { avatar_url: string; login: string };
 }
 
-interface resBody {
+interface apiStatus {
+  nextPageNumber: string;
+  rateLimitReset: string;
+}
+
+interface GitHubResponse {
   incomplete_results: boolean;
   items: resData[];
   total_count: number;
@@ -29,65 +34,68 @@ export interface SearchInput {
   page: string | undefined;
 }
 
-export type errorCode = '403' | '304' | '422' | '503';
+export type errorCode = 403 | 304 | 422 | 503;
 
-// const cache = new Map<string, {header:Partial<Vnd>, items:resData[]}>();
+const cache = new Map<string, { status: apiStatus; items: resData[] }>();
 
 export const useSearchGitHub = () => {
   const [data, setData] = useState<resData[] | null>(null);
   const [error, setError] = useState<errorCode | null>(null);
   const [isLoading, setIsloading] = useState<boolean>(false);
-  const [resHeader, setResHeader] = useState<Partial<Vnd> | null>(null);
-  const prevSearch = useRef<SearchInput | null>(null);
+  const [apiStatus, setApiStatus] = useState<apiStatus | null>(null);
 
-  const search = useCallback(async (state: SearchInput) => {
-    try {
-      console.log(state);
-      if (prevSearch.current && prevSearch.current.text === state.text && prevSearch.current.page === state.page) {
-        console.log(`%csame-page-fetch`, 'color: red; font-weight: bold;');
+  const { fetchData } = useFetchApi2();
+
+  const search = useCallback(
+    async (input: SearchInput) => {
+      if (cache.has(`${input.text}-${input.page}`)) {
+        setData(cache.get(`${input.text}-${input.page}`)!.items);
+        setApiStatus(cache.get(`${input.text}-${input.page}`)!.status);
         return;
       }
-      // if(cache.has(state.text)) {
-      //   setData(cache.get(state.text)!.items);
-      //   setResHeader(cache.get(state.text)!.header);
-      //   return 
-      // }
       setIsloading(true);
-      prevSearch.current = state;
-      const url = () => {
-        if (state.page === undefined) {
-          return `https://api.github.com/search/repositories?q=${state.text}`;
-        } else {
-          return `https://api.github.com/search/repositories?q=${state.text}&page=${state.page}`;
-        }
-      };
-      const res = await fetch(url(), {
+
+      const apiUrl =
+        input.page === undefined
+          ? `https://api.github.com/search/repositories?q=${input.text}`
+          : `https://api.github.com/search/repositories?q=${input.text}&page=${input.page}`;
+
+      const apiInit = {
         method: 'GET',
         headers: {
           Accept: 'application/vnd.github.text-match+json',
           Authorization: import.meta.env.VITE_GITHUB_API_TOKEN,
           'X-GitHub-Api-Version': '2022-11-28',
         },
-      });
-      if (res.ok) {
-        console.log('remain: ', res.headers.get('x-ratelimit-remaining'));
-        const responseHeader = vndTransform(res);
-        const responseBody: resBody = await res.json();
-        const responseData = responseBody.items;
-        // cache.set(state.text, {header: responseHeader, items: responseData});
-        setResHeader(responseHeader);
-        setData(responseData);
-        setError(null);
+      };
+      const {
+        response,
+        headers,
+        error: apiError,
+      }: { response: GitHubResponse; headers: Headers | null; error: errorCode } = await fetchData(apiUrl, apiInit);
+      if (apiError) {
+        setError(apiError);
+        setIsloading(false);
       } else {
-        prevSearch.current = null;
-        throw Error(`${res.status}`);
-      }
-    } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setIsloading(false);
-    }
-  }, []);
+        const link = headers?.get('link');
+        const linkArr = link?.match(/<([^>]+)>;\s*rel="([^"]+)"/g);
+        const nextPageNumber = linkArr?.find((d) => d.includes('rel="next"'))?.match(/page=(\d+)/)?.[1];
+        const rateLimitReset = headers?.get('x-ratelimit-reset');
 
-  return { data, error, isLoading, resHeader, search };
+        if (nextPageNumber && rateLimitReset) {
+          setApiStatus({ nextPageNumber, rateLimitReset });
+          cache.set(`${input.text}-${input.page}`, {
+            status: { nextPageNumber, rateLimitReset },
+            items: response.items,
+          });
+        }
+        setData(response.items);
+        setError(null);
+        setIsloading(false);
+      }
+    },
+    [fetchData],
+  );
+
+  return { data, error, isLoading, apiStatus, search };
 };

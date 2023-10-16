@@ -10,9 +10,9 @@ function App() {
   const [searchCache, setSearchCache] = useState<SearchInput>(initialInput);
   const [searchResult, setSearchResult] = useState<resData[]>([]);
   const [timeUntilReset, setTimeUntilReset] = useState<number | null>(null);
-  const { data, resHeader, isLoading, error, search } = useSearchGitHub();
+  const { data, apiStatus, isLoading, error, search } = useSearchGitHub();
 
-  const resetTimestamp = Number(resHeader?.rateLimitReset ?? 0) * 1000;
+  const resetTimestamp = Number(apiStatus?.rateLimitReset ?? 0) * 1000;
 
   useEffect(() => {
     if (data) {
@@ -21,7 +21,7 @@ function App() {
   }, [data]);
 
   useEffect(() => {
-    if (error !== '403') return;
+    if (error !== 403) return;
     const intervalId = setInterval(() => {
       const remainingTime = resetTimestamp - Date.now();
       if (remainingTime <= 0) {
@@ -39,17 +39,17 @@ function App() {
   let errorMessage = '';
   if (error && timeUntilReset) {
     switch (error) {
-      case '403':
+      case 403:
         isReachRateLimit = true;
         errorMessage = `API rate limit exceeded, please retry after ${Math.floor(timeUntilReset / 1000)} seconds`;
         break;
-      case '304':
+      case 304:
         errorMessage = 'Not modified';
         break;
-      case '422':
+      case 422:
         errorMessage = 'Validation failed, or the endpoint has been spammed.';
         break;
-      case '503':
+      case 503:
         errorMessage = 'Service unavailable';
         break;
       default:
@@ -63,7 +63,7 @@ function App() {
     if (inView && !isReachRateLimit && !isLoading) {
       await search({
         text: searchCache.text,
-        page: resHeader?.nextPageNumber,
+        page: apiStatus?.nextPageNumber,
       });
     }
   };
