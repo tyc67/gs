@@ -1,27 +1,33 @@
-# GS React + TypeScript + Vite
+# GitHub Search
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A tool designed to streamline the process of discovering GitHub repositories, presenting you with essential information in a clear and intuitive manner.
 
-Currently, two official plugins are available:
+## Demo
+[Demo Link](https://your-username.github.io/react-vite-serverless)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Features
+- Modern React development environment powered by Vite.
+- Connects with the GitHub API seamlessly, providing real-time access to the latest repository data, ensuring you get up-to-the-minute search results and information.
+- With Intersection Observer, allowing you to load more search results as you scroll down the page, providing a smooth and user-friendly browsing experience.
+- Responsive design for various screen sizes.
+- Easily deployable to GitHub Pages or any static hosting service.
+ 
+## Technologies and Tools
+- **Frontend**: React, Tailwind CSS, Vite
+- **Backend**: Node.js
+- **Development Tools**: npm, Jest, ESLint, Prettier
+- **Hosting**: GitHub Pages
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
-
-- Configure the top-level `parserOptions` property like this:
-
-```js
-   parserOptions: {
-    ecmaVersion: 'latest',
-    sourceType: 'module',
-    project: ['./tsconfig.json', './tsconfig.node.json'],
-    tsconfigRootDir: __dirname,
-   },
+## Getting Started
+### Clone the Repository
+```sh
+git clone <repository-url>
 ```
-
-- Replace `plugin:@typescript-eslint/recommended` to `plugin:@typescript-eslint/recommended-type-checked` or `plugin:@typescript-eslint/strict-type-checked`
-- Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
+### Install Dependencies
+```sh
+npm install
+```
+### Start the Application
+```sh
+npm start
+```
