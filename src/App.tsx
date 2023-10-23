@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchGitHub, type SearchInput, type resData } from './hooks/useSearchGitHub';
-import SearchResultMenu from './component/searchResultMenu';
-import SearchBar from './component/searchBar';
-import ErrorInfo from './component/errorInfo';
+import SearchResultMenu from './component/SearchResultMenu';
+import SearchBar from './component/SearchBar';
+import ErrorInfo from './component/ErrorInfo';
 
 function App() {
   const initialInput = { text: '', page: undefined };
@@ -34,7 +34,6 @@ function App() {
     return () => clearInterval(intervalId);
   }, [error, resetTimestamp]);
 
-  // const {errorMessage, isReachRateLimit} = useMemo(() => {
   let isReachRateLimit = false;
   let errorMessage = '';
   if (error && timeUntilReset) {
@@ -56,8 +55,6 @@ function App() {
         errorMessage = 'Uknown error';
     }
   }
-  //   return { isReachRateLimit, errorMessage }
-  // }, [error, timeUntilReset]);
 
   const handleInViewChange = async (inView: boolean) => {
     if (inView && !isReachRateLimit && !isLoading) {

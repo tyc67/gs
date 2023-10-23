@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useFetchApi2 } from './useFetchApi';
+import { useApiRequest } from './useFetchApi';
 
 export interface resData {
   id: string;
@@ -44,7 +44,7 @@ export const useSearchGitHub = () => {
   const [isLoading, setIsloading] = useState<boolean>(false);
   const [apiStatus, setApiStatus] = useState<apiStatus | null>(null);
 
-  const { fetchData } = useFetchApi2();
+  const { fetchData } = useApiRequest();
 
   const search = useCallback(
     async (input: SearchInput) => {

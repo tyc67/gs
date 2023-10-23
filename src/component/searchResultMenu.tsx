@@ -1,4 +1,4 @@
-import { SearchResult } from './searchResult';
+import { SearchResult } from './SearchResult';
 import { type resData } from '../hooks/useSearchGitHub';
 
 interface SearchResultMenuProps {
